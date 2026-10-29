@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>ANDGROUP Ombor Skaner</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    body{font:16px system-ui,-apple-system,sans-serif;margin:0;background:#f2f5fa;color:#172232;padding:18px}
+    main{max-width:540px;margin:0 auto}h1{font-size:22px}p{line-height:1.45}
+    #reader{background:white;border-radius:12px;overflow:hidden;margin:14px 0;min-height:100px}
+    #reader video{width:100%!important;max-height:55vh;object-fit:contain}
+    button,input{box-sizing:border-box;font:inherit;border-radius:10px;padding:13px;width:100%;margin:7px 0}
+    button{border:0;background:#1687d2;color:white;font-weight:650}
+    input{border:1px solid #9da9bc;background:#fff}
+    #status{background:#e4eef8;padding:12px;border-radius:10px;white-space:pre-wrap}
+    .hint{font-size:13px;color:#526173}
+  </style>
+</head>
+<body><main>
+  <h1>📷 ANDGROUP Ombor Skaner</h1>
+  <p>iPhone kamerasi bilan shtrix-kodni o‘qing. Avval «Kamerani yoqish» tugmasini bosing.</p>
+  <button id="start">📷 Kamerani yoqish</button>
+  <div id="reader"></div>
+  <div id="status" role="status">Skanerlash uchun tugmani bosing.</div>
+  <label for="code">Shtrix-kod (qo‘lda ham yozish mumkin)</label>
+  <input id="code" type="text" autocomplete="off" placeholder="4780012345678">
+  <button id="send">🔎 Qoldiqni tekshirish</button>
+  <p class="hint">Kod Telegram botiga yuboriladi. Safari orqali ochilganda esa Telegram botidagi skaner tugmasidan foydalaning.</p>
+</main>
+<script>
+  const tg=window.Telegram?.WebApp;
+  tg?.ready();
+  const status=document.getElementById('status');
+  const field=document.getElementById('code');
+  const start=document.getElementById('start');
+  let scanner=null, completed=false;
+  function report(message){status.textContent=message}
+  function submit(){
+    const code=field.value.trim();
+    if(!code){report('Avval kodni skaner qiling yoki yozing.');return}
+    if(tg?.sendData){tg.sendData(JSON.stringify({code}));tg.close()}
+    else {report('Kod o‘qildi: '+code+'\nBot ichidan 📷 Skanerlash tugmasini ochib tekshiring.')}
+  }
+  document.getElementById('send').addEventListener('click',submit);
+  start.addEventListener('click',async()=>{
+    if(!window.isSecureContext){report('HTTPS manzil orqali oching.');return}
+    if(!window.Html5QrcodeScanner){report('Skaner kutubxonasi yuklanmadi. Internetni tekshiring va yangilang.');return}
+    if(scanner){return}
+    start.disabled=true;
+    report('Kameraga ruxsat bering. Skaner panelidagi kamera tugmasini tanlang.');
+    try{
+      scanner=new Html5QrcodeScanner('reader',{
+        fps:10,qrbox:{width:260,height:160},rememberLastUsedCamera:true,
+        supportedScanTypes:[Html5QrcodeScanType.SCAN_TYPE_CAMERA,Html5QrcodeScanType.SCAN_TYPE_FILE],
+        formatsToSupport:[
+          Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.CODE_128,Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E,
+          Html5QrcodeSupportedFormats.ITF,Html5QrcodeSupportedFormats.QR_CODE
+        ]
+      },false);
+      scanner.render((decoded)=>{
+        if(completed)return;
+        completed=true;field.value=decoded;
+        report('✅ Kod o‘qildi: '+decoded);
+        scanner.clear().catch(()=>{}).finally(()=>submit());
+      },()=>{});
+      report('Panelda «Start Scanning» ni bosing va iPhone kamera ruxsatiga rozilik bering.');
+    }catch(error){scanner=null;start.disabled=false;report('Kamera paneli ochilmadi: '+String(error))}
+  });
+</script></body></html>
