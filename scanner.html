@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="uz"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ombor skaner</title><script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>body{font:16px system-ui;background:#f3f6fa;color:#182536;padding:18px;max-width:550px;margin:auto}video{width:100%;border-radius:12px;background:#182536}button,input{font:inherit;padding:12px;border-radius:9px;margin-top:10px}button{background:#1686d2;color:white;border:0}input{width:90%;border:1px solid #aaa}#status{margin-top:14px}</style></head>
+<body><h2>📷 Ombor shtrix-kod skaneri</h2><p>Telefon kamerasini shtrix-kodga tuting.</p>
+<video id="camera" autoplay playsinline muted></video><p id="status">Kamera ishga tushirilmoqda...</p>
+<input id="code" placeholder="Kod qo'lda yoki skaner bilan" inputmode="text"><button id="send">Qoldiqni tekshirish</button>
+<script>
+const tg=window.Telegram?.WebApp;tg?.ready();const camera=document.getElementById('camera');const status=document.getElementById('status');const field=document.getElementById('code');
+let stopped=false,stream=null;
+function send(){const code=field.value.trim();if(!code){status.textContent='Kod kiriting';return}if(tg?.sendData){tg.sendData(JSON.stringify({code}));tg.close()}else{status.textContent='Telegram bot ichidan oching. Kod: '+code}}
+document.getElementById('send').addEventListener('click',send);
+async function begin(){if(!('BarcodeDetector' in window)){status.textContent='Bu qurilmada avtomatik skaner yo‘q. Kodni qo‘lda kiriting yoki Bluetooth skaner bilan yuboring.';return}
+try{const detector=new BarcodeDetector({formats:['ean_13','ean_8','code_128','code_39','upc_a','upc_e','qr_code','itf']});stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});camera.srcObject=stream;status.textContent='Kod qidirilmoqda...';async function tick(){if(stopped)return;try{const codes=await detector.detect(camera);if(codes.length){field.value=codes[0].rawValue;stopped=true;stream.getTracks().forEach(t=>t.stop());status.textContent='Kod topildi: '+field.value;send();return}}catch(e){}setTimeout(tick,250)}tick()}catch(e){status.textContent='Kamera ochilmadi. Ruxsatni tekshiring yoki kodni qo‘lda kiriting.'}}
+window.addEventListener('pagehide',()=>{stopped=true;stream?.getTracks().forEach(t=>t.stop())});begin();
+</script></body></html>
